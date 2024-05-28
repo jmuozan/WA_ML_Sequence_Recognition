@@ -1,4 +1,5 @@
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, request, Response, redirect, url_for
+import os
 import cv2
 import numpy as np
 import pandas as pd
@@ -8,21 +9,44 @@ from modules.keypoints import extract_keypoints
 from modules.model_handler import load_action_model, predict_action
 
 app = Flask(__name__)
- 
-# Load model and other required data
-data = pd.read_csv('modified_file.csv')
-labels = data.iloc[:, 0]
-actions = list(set(labels))
-label_map = {label: num for num, label in enumerate(actions)}
 
-model_path = 'actions.h5'
-model = load_action_model(model_path)
+# Path to the models directory
+MODELS_DIR = 'models'
 
-reverse_label_map = {value: key for key, value in label_map.items()}
+# Global variables to store the selected model and data
+model = None
+data = None
+actions = []
+label_map = {}
+reverse_label_map = {}
 
-@app.route('/')
+def get_model_options():
+    # Scan the models directory for available subfolders
+    subfolders = [f.name for f in os.scandir(MODELS_DIR) if f.is_dir()]
+    return subfolders
+
+def initialize_model_and_data(selected_model):
+    global model, data, actions, label_map, reverse_label_map
+    model_path = os.path.join(MODELS_DIR, selected_model, f'{selected_model}.h5')
+    csv_path = os.path.join(MODELS_DIR, selected_model, f'{selected_model}.csv')
+    
+    data = pd.read_csv(csv_path)
+    labels = data.iloc[:, 0]
+    actions = list(set(labels))
+    label_map = {label: num for num, label in enumerate(actions)}
+    model = load_action_model(model_path)
+    reverse_label_map = {value: key for key, value in label_map.items()}
+
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    model_options = get_model_options()
+    
+    if request.method == 'POST':
+        selected_model = request.form['model']
+        initialize_model_and_data(selected_model)
+        return redirect(url_for('video_feed'))
+    
+    return render_template('index.html', model_options=model_options)
 
 def generate_frames():
     cap = cv2.VideoCapture(0)
@@ -67,6 +91,8 @@ def generate_frames():
 
 @app.route('/video_feed')
 def video_feed():
+    if model is None or data is None:
+        return redirect(url_for('index'))
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':

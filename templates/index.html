@@ -9,7 +9,19 @@
   <body>
     <div class="container">
       <h1>Action Detection</h1>
+      <form method="POST" action="/">
+        <label for="model">Choose a model:</label>
+        <select id="model" name="model">
+          {% for model in model_options %}
+          <option value="{{ model }}">{{ model }}</option>
+          {% endfor %}
+        </select>
+        <br>
+        <button type="submit">Start Detection</button>
+      </form>
+      {% if model is not none %}
       <img src="{{ url_for('video_feed') }}" width="100%">
+      {% endif %}
     </div>
   </body>
 </html>

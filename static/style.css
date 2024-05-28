@@ -5,6 +5,16 @@ body {
     height: 100vh;
     background-color: #f0f0f0;
 }
+
 .container {
     text-align: center;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+label, select, button {
+    display: block;
+    margin: 10px 0;
 }
