@@ -1,3 +1,19 @@
+/* Define the custom font */
+@font-face {
+    font-family: 'Nexa Bold';
+    src: url('Fonts/Nexa/Commercial/Nexa_V2_2020/WEB/NexaDemo-Bold.woff') format('truetype');
+}
+@font-face {
+    font-family: 'Agrandir Bold';
+    src: url('Fonts/Agrandir/Agrandir-ThinItalic.otf') format('truetype');
+}
+
+/* Apply the custom font to the body and specific elements */
+body, h1 {
+    font-family: 'Nexa Bold', Arial, sans-serif;
+}
+
+/* Existing CSS */
 body, html {
     margin: 0;
     padding: 0;
@@ -69,7 +85,7 @@ nav ul li a {
 }
 
 .overlay h1 {
-    font-size: 4rem;
+    font-size: 6rem;
     margin: 0;
 }
 
