@@ -37,8 +37,12 @@ def initialize_model_and_data(selected_model):
     model = load_action_model(model_path)
     reverse_label_map = {value: key for key, value in label_map.items()}
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/', methods=['GET'])
 def index():
+    return render_template('index.html')
+
+@app.route('/learn', methods=['GET', 'POST'])
+def learn():
     model_options = get_model_options()
     
     if request.method == 'POST':
@@ -46,7 +50,15 @@ def index():
         initialize_model_and_data(selected_model)
         return redirect(url_for('video_feed'))
     
-    return render_template('index.html', model_options=model_options)
+    return render_template('learn.html', model_options=model_options)
+
+@app.route('/about', methods=['GET'])
+def about():
+    return render_template('about.html')
+
+@app.route('/create', methods=['GET'])
+def create():
+    return render_template('create.html')
 
 def generate_frames():
     cap = cv2.VideoCapture(0)
@@ -92,7 +104,7 @@ def generate_frames():
 @app.route('/video_feed')
 def video_feed():
     if model is None or data is None:
-        return redirect(url_for('index'))
+        return redirect(url_for('learn'))
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':

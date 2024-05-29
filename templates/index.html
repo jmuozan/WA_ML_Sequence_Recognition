@@ -7,21 +7,26 @@
     <title>Action Detection</title>
   </head>
   <body>
-    <div class="container">
-      <h1>Action Detection</h1>
-      <form method="POST" action="/">
-        <label for="model">Choose a model:</label>
-        <select id="model" name="model">
-          {% for model in model_options %}
-          <option value="{{ model }}">{{ model }}</option>
-          {% endfor %}
-        </select>
-        <br>
-        <button type="submit">Start Detection</button>
-      </form>
-      {% if model is not none %}
-      <img src="{{ url_for('video_feed') }}" width="100%">
-      {% endif %}
+    <header>
+      <nav>
+        <ul>
+          <li><a href="{{ url_for('index') }}">Home</a></li>
+          <li><a href="{{ url_for('learn') }}">Learn</a></li>
+          <li><a href="{{ url_for('about') }}">About</a></li>
+          <li><a href="{{ url_for('create') }}">Create</a></li>
+        </ul>
+      </nav>
+    </header>
+    <div class="background">
+      <video autoplay muted loop class="video-background" id="video1">
+        <source src="{{ url_for('static', filename='video1.mp4') }}" type="video/mp4">
+      </video>
+      <video autoplay muted loop class="video-background" id="video2">
+        <source src="{{ url_for('static', filename='video2.mp4') }}" type="video/mp4">
+      </video>
+      <div class="overlay content">
+        <h1>BUILT TO LAST</h1>
+      </div>
     </div>
   </body>
 </html>
