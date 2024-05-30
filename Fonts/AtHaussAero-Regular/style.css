@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'At Hauss Aero';
+    src: local('At Hauss Aero Regular'), local('At-Hauss-Aero-Regular'),
+        url('AtHaussAero-Regular.woff2') format('woff2'),
+        url('AtHaussAero-Regular.woff') format('woff'),
+        url('AtHaussAero-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+  }
