@@ -1,41 +1,77 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <title>Action Detection</title>
-  </head>
-  <body>
-    <header>
-      <nav>
-        <ul>
-          <li><a href="{{ url_for('index') }}">Home</a></li>
-          <li><a href="{{ url_for('learn') }}">Learn</a></li>
-          <li><a href="{{ url_for('about') }}">About</a></li>
-          <li><a href="{{ url_for('create') }}">Create</a></li>
-        </ul>
-      </nav>
-    </header>
-    <div class="background">
-      <video autoplay muted loop class="video-background" id="video1">
-        <source src="{{ url_for('static', filename='video1.mp4') }}" type="video/mp4">
-      </video>
-      <video autoplay muted loop class="video-background" id="video2">
-        <source src="{{ url_for('static', filename='video2.mp4') }}" type="video/mp4">
-      </video>
-      <div class="overlay content">
-        <h1>AI.rtisanship</h1>
-        <div class="scroll-down-arrow"></div>
-      </div>
-    </div>
-    <div class="content-container">
-      <h2>Welcome to AI.rtisanship</h2>
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam id dolor id nibh ultricies vehicula ut id elit.</p>
-      <p>Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Morbi leo risus, porta ac consectetur ac, vestibulum at eros.</p>
-      <p>Maecenas faucibus mollis interdum. Curabitur blandit tempus porttitor. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-      <p>Donec ullamcorper nulla non metus auctor fringilla. Etiam porta sem malesuada magna mollis euismod.</p>
-      <!-- Add more content as needed -->
-    </div>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <title>Action Detection</title>
+  <style>
+    /* Add any additional styles here */
+    .background {
+      height: 100vh; /* Adjust as needed */
+      position: relative;
+      overflow: hidden;
+    }
+    .content-container {
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <nav>
+    <ul>
+      <li><a href="{{ url_for('index') }}">Home</a></li>
+      <li><a href="{{ url_for('learn') }}">Learn</a></li>
+      <li><a href="{{ url_for('about') }}">About</a></li>
+      <li><a href="{{ url_for('create') }}">Create</a></li>
+    </ul>
+  </nav>
+</header>
+<div class="background" id="top-section">
+  <video autoplay muted loop class="video-background" id="video1">
+    <source src="{{ url_for('static', filename='video1.mp4') }}" type="video/mp4">
+  </video>
+  <video autoplay muted loop class="video-background" id="video2">
+    <source src="{{ url_for('static', filename='video2.mp4') }}" type="video/mp4">
+  </video>
+  <div class="overlay content">
+    <h1><span class="ai-text">AI</span>.rtisanship</h1>
+    <div class="scroll-down-arrow" onclick="scrollToNextDiv()"></div>
+    <p class="bottom-right">Hands on to <span class="crafting-text">Craft</span> the Knowledge of Tomorrow</p> 
+  </div>
+</div>
+<div id="next-div" class="content-container">
+  <h2>Welcome to AI.rtisanship</h2>
+  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam id dolor id nibh ultricies vehicula ut id elit.</p>
+  <p>Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Morbi leo risus, porta ac consectetur ac, vestibulum at eros.</p>
+  <p>Maecenas faucibus mollis interdum. Curabitur blandit tempus porttitor. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+  <p>Donec ullamcorper nulla non metus auctor fringilla. Etiam porta sem malesuada magna mollis euismod.</p>
+  <!-- Add more content as needed -->
+</div>
+
+<script>
+  function scrollToNextDiv() {
+    document.getElementById('next-div').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function scrollToTop() {
+    document.getElementById('top-section').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function handleScroll(event) {
+    const delta = Math.sign(event.deltaY);
+    const scrollPosition = window.scrollY || window.pageYOffset;
+    const topSectionHeight = document.getElementById('top-section').offsetHeight;
+
+    if (delta > 0 && scrollPosition < window.innerHeight) {
+      scrollToNextDiv();
+    } else if (delta < 0 && scrollPosition >= window.innerHeight && scrollPosition <= topSectionHeight) {
+      scrollToTop();
+    }
+  }
+
+  window.addEventListener('wheel', handleScroll);
+</script>
+</body>
 </html>

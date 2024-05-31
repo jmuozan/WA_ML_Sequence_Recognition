@@ -8,6 +8,14 @@
     font-style: normal;
 }
 
+@font-face {
+    font-family: 'Mazius Display';
+    src: local('Mazius Display'),
+        url('MaziusDisplay-ExtraItalicBold.otf') format('opentype');
+    font-weight: 400;
+    font-style: bold italic;
+}
+
 /* Apply the custom font to the body and specific elements */
 body, h1, header {
     font-family: 'At Hauss Aero', Arial, sans-serif;
@@ -21,6 +29,7 @@ body, html {
     width: 100%;
     overflow: auto; /* Allow scrolling */
     background: black; /* Default background to enhance contrast */
+    scroll-behavior: smooth; /* Smooth scrolling */
 }
 
 header {
@@ -94,9 +103,29 @@ nav ul li a {
     padding-left: 20px; /* Add some padding to keep it aligned left */
 }
 
+.overlay .ai-text {
+    font-family: 'Mazius Display', serif;
+    font-style: italic;
+    font-weight: bold;
+}
+
+.overlay .bottom-right {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    font-size: 1.5rem;
+    text-align: right;
+}
+
+.overlay .crafting-text {
+    font-family: 'Mazius Display', serif;
+    font-style: italic;
+    font-weight: bold;
+}
+
 .scroll-down-arrow {
     position: absolute;
-    top: 75%;
+    top: 80%;
     left: 50%;
     width: 30px;
     height: 30px;
@@ -105,6 +134,7 @@ nav ul li a {
     transform: rotate(-45deg) translate(-50%, -50%);
     animation: bounce 2s infinite;
     z-index: 3; /* Ensure the arrow is above other elements */
+    cursor: pointer; /* Change cursor to pointer on hover */
 }
 
 @keyframes bounce {
@@ -157,15 +187,15 @@ label, select, button {
 
 @media (max-width: 768px) {
     .overlay h1 {
-        font-size: 3rem;
-        padding-left: 10px;
+        font-size: 3.5rem; /* Slightly larger text for medium screens */
+        padding-left: 20px; /* Keep the left padding */
     }
 }
 
 @media (max-width: 576px) {
     .overlay h1 {
-        font-size: 2rem;
-        padding-left: 5px;
+        font-size: 3rem; /* Larger text for small screens */
+        padding-left: 20px; /* Keep the left padding */
     }
 
     .video-background {
