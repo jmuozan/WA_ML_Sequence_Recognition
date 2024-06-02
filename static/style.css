@@ -16,12 +16,10 @@
     font-style: bold italic;
 }
 
-/* Apply the custom font to the body and specific elements */
 body, h1, header {
     font-family: 'At Hauss Aero', Arial, sans-serif;
 }
 
-/* Existing CSS */
 body, html {
     margin: 0;
     padding: 0;
@@ -30,32 +28,6 @@ body, html {
     overflow: auto; /* Allow scrolling */
     background: black; /* Default background to enhance contrast */
     scroll-behavior: smooth; /* Smooth scrolling */
-}
-
-header {
-    position: fixed;
-    width: 100%;
-    z-index: 100;
-    background-color: rgba(0, 0, 0, 0.5); /* Same transparency as h1 */
-    mix-blend-mode: difference; /* Apply blend mode for transparency effect */
-}
-
-nav ul {
-    list-style: none;
-    padding: 10px;
-    margin: 0;
-    display: flex;
-    justify-content: center;
-}
-
-nav ul li {
-    margin: 0 15px;
-}
-
-nav ul li a {
-    color: white;
-    text-decoration: none;
-    font-weight: bold;
 }
 
 .background {
@@ -152,27 +124,118 @@ nav ul li a {
 .content-container {
     padding: 20px;
     color: white; /* High contrast color */
-    z-index: 2;
     text-align: center;
-    margin-top: 100vh; /* Start after the full screen background */
+    margin-top: 5vh; /* Start after the full screen background */
+    margin-bottom: 7vh;
+    background-color: #0e0e0e; /* Background color to match the example */
 }
 
-.container {
-    padding: 20px;
-    text-align: center;
-    margin-top: 100px;
+.content-container h2 {
+    font-size: 3rem;
+    text-align: left;
+    margin-bottom: 40px;
 }
 
-form {
-    margin-bottom: 20px;
+.project-row {
+    display: flex;
+    justify-content: space-between; /* Ensure even spacing between the two divs */
+    padding: 10px 0;
+    border-bottom: 2px solid #b1b1b1;
 }
 
-label, select, button {
+.project-row a {
+    text-decoration: none;
+    color: inherit;
     display: block;
-    margin: 10px 0;
+    width: 100%;
 }
 
-/* Media Queries for Responsive Design */
+.project-name, .project-description {
+    display: flex;
+    align-items: center;
+    font-size: 2.8rem;
+    color: grey; /* Grey typography color for the rows */
+    transition: color 0.3s; /* Smooth transition for the hover effect */
+}
+
+.project-row:hover .project-name,
+.project-row:hover .project-description {
+    color: white; /* Change typography color to white on hover */
+}
+
+.project-name {
+    justify-content: start;
+    font-weight: bold;
+}
+
+.project-description {
+    justify-content: start; /* Aligned to start, same as project name */
+    font-size: 2rem; /* Smaller typography size for project description */
+}
+
+/* Footer Styles */
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: black;
+    color: white;
+    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
+.footer .footer-content {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.footer .left,
+.footer .center,
+.footer .right {
+    flex: 1;
+}
+
+.footer .left {
+    text-align: left;
+}
+
+.footer .center {
+    text-align: center;
+}
+
+.footer .right {
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px; /* Add some space between icons */
+}
+
+.footer .right img {
+    width: 20px;
+    height: 20px;
+}
+
+.footer .triangle {
+    font-size: 0.8em;
+}
+
+/* Responsive Design Adjustments */
+@media (max-width: 768px) {
+  .project-row {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .project-name, .project-description {
+    justify-content: center;
+  }
+}
+
 @media (max-width: 1200px) {
     .overlay h1 {
         font-size: 5rem;
@@ -183,7 +246,6 @@ label, select, button {
     .overlay h1 {
         font-size: 4rem;
     }
-}
 
 @media (max-width: 768px) {
     .overlay h1 {
@@ -205,4 +267,5 @@ label, select, button {
     #video2 {
         display: none; /* Hide the second video */
     }
+}
 }

@@ -15,19 +15,18 @@
     .content-container {
       padding: 20px;
     }
+    .project-row a {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .content-container p {
+      text-align: left; /* Align the paragraph to the left */
+    }
   </style>
 </head>
 <body>
-<header>
-  <nav>
-    <ul>
-      <li><a href="{{ url_for('index') }}">Home</a></li>
-      <li><a href="{{ url_for('learn') }}">Learn</a></li>
-      <li><a href="{{ url_for('about') }}">About</a></li>
-      <li><a href="{{ url_for('create') }}">Create</a></li>
-    </ul>
-  </nav>
-</header>
+
 <div class="background" id="top-section">
   <video autoplay muted loop class="video-background" id="video1">
     <source src="{{ url_for('static', filename='video1.mp4') }}" type="video/mp4">
@@ -42,14 +41,51 @@
   </div>
 </div>
 <div id="next-div" class="content-container">
-  <h2>Welcome to AI.rtisanship</h2>
-  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam id dolor id nibh ultricies vehicula ut id elit.</p>
-  <p>Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Morbi leo risus, porta ac consectetur ac, vestibulum at eros.</p>
-  <p>Maecenas faucibus mollis interdum. Curabitur blandit tempus porttitor. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-  <p>Donec ullamcorper nulla non metus auctor fringilla. Etiam porta sem malesuada magna mollis euismod.</p>
-  <!-- Add more content as needed -->
+  <h2>The teaching of the crafts in the third digital revolution</h2>
+  <p>The goal of the project is to globalize and modernize the transmission of ancient craftsmanship knowledge through the use of advanced AI 
+    technologies, preserving cultural heritage and providing educational tools for new generations.</p>
+  <div class="project-row">
+    <a href="{{ url_for('index') }}">
+      <div class="project-name">Home</div>
+      <div class="project-description"></div>
+    </a>
+  </div>
+  <div class="project-row">
+    <a href="{{ url_for('learn') }}">
+      <div class="project-name">Learn</div>
+      <div class="project-description">It's always a good time to learn a new craft</div>
+    </a>
+  </div>
+  <div class="project-row">
+    <a href="{{ url_for('about') }}">
+      <div class="project-name">About</div>
+      <div class="project-description">Know more about the project</div>
+    </a>
+  </div>
+  <div class="project-row">
+    <a href="{{ url_for('create') }}">
+      <div class="project-name">Create</div>
+      <div class="project-description">Create your own dataset</div>
+    </a>
+  </div>
 </div>
 
+<footer class="footer">
+  <div class="footer-content">
+      <div class="left">
+          <span>Master in Design for Emergent Futures</span>
+      </div>
+      <div class="center">
+          <span>Made by <a href="https://jmuozan.github.io/mdef-website/" target="_blank">jorge munyoz</a></span>
+      </div>
+      <div class="right">
+          <a href="https://www.linkedin.com/in/jorgemunozzanon/" target="_blank"><img src="{{ url_for('static', filename='IMG/Media_Icons/LinkedIn.svg') }}" alt="LinkedIn"></a>
+          <a href="https://www.instagram.com/jmunyozz?igsh=cWp2ZjQxdWQ5bTBu&utm_source=qr" target="_blank"><img src="{{ url_for('static', filename='IMG/Media_Icons/Instagram.svg') }}" alt="Instagram"></a>
+          <a href="https://x.com/jorgemunyozz?s=21&t=RjlIzhKjwHS9W8QkEsRhjg" target="_blank"><img src="{{ url_for('static', filename='IMG/Media_Icons/Twitter.svg') }}" alt="Twitter"></a>
+          <a href="https://github.com/jmuozan" target="_blank"><img src="{{ url_for('static', filename='IMG/Media_Icons/GitHub.svg') }}" alt="GitHub"></a>
+      </div>
+  </div>     
+</footer>
 <script>
   function scrollToNextDiv() {
     document.getElementById('next-div').scrollIntoView({ behavior: 'smooth' });
