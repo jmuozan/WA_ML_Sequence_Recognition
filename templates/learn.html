@@ -99,6 +99,9 @@
         width: 100%; 
         height: auto;
       }
+      #videoFeedContainer {
+        margin-top: 20px;
+      }
     </style>
   </head>
   <body>
@@ -115,31 +118,30 @@
     <div class="main-container">
       <div class="container">
         <h1>Select Model to Learn</h1>
-        <form method="POST" action="/learn" id="modelForm">
-          <div class="swiper-container">
-            <div class="swiper-wrapper">
-              {% for model in model_options %}
-              <div class="swiper-slide" data-model="{{ model }}">
-                <video src="{{ url_for('static', filename='videos/' + model + '.mp4') }}" muted></video>
-                <input type="radio" id="model_{{ model }}" name="model" value="{{ model }}" style="display:none;">
-                <div class="description">
-                  <div style="display: flex; justify-content: space-between;">
-                    <span>MOVEMENT</span>
-                    <span>PERSON</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between;">
-                    <span>LOCATION</span>
-                    <span>PRICE</span>
-                  </div>
+        <div class="swiper-container">
+          <div class="swiper-wrapper">
+            {% for model in model_options %}
+            <div class="swiper-slide" data-model="{{ model }}">
+              <video src="{{ url_for('static', filename='videos/' + model + '.mp4') }}" muted></video>
+              <div class="description">
+                <div style="display: flex; justify-content: space-between;">
+                  <span>MOVEMENT</span>
+                  <span>PERSON</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span>LOCATION</span>
+                  <span>PRICE</span>
                 </div>
               </div>
-              {% endfor %}
             </div>
+            {% endfor %}
           </div>
-        </form>
-        <video id="camera" autoplay></video>
-        <canvas id="outputCanvas"></canvas>
+        </div>
         <button id="stopPrediction">Stop Prediction</button>
+        <div id="videoFeedContainer">
+          <img id="camera" />
+          <canvas id="outputCanvas"></canvas>
+        </div>
       </div>
     </div>
     <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
@@ -189,17 +191,24 @@
         }
       }, 100));
 
-      function startCamera() {
+      function startCamera(model) {
         const camera = document.getElementById('camera');
-        const outputCanvas = document.getElementById('outputCanvas');
-        camera.src = "/video_feed";
-        camera.style.display = 'block';
-        outputCanvas.style.display = 'block';
+        fetch('/select_model', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ model: model })
+        }).then(() => {
+          camera.src = "/video_feed";
+          camera.style.display = 'block';
+          document.getElementById('outputCanvas').style.display = 'block';
+        });
       }
 
       function stopCamera() {
         const camera = document.getElementById('camera');
-        camera.srcObject = null;
+        camera.src = "";
         camera.style.display = 'none';
         document.getElementById('outputCanvas').style.display = 'none';
       }
@@ -208,8 +217,8 @@
         slide.addEventListener('click', () => {
           document.querySelectorAll('.swiper-slide').forEach(s => s.classList.remove('selected'));
           slide.classList.add('selected');
-          slide.querySelector('input[type="radio"]').checked = true;
-          document.getElementById('modelForm').submit();
+          const selectedModel = slide.getAttribute('data-model');
+          startCamera(selectedModel); // Start the camera when a model is selected
           document.getElementById('stopPrediction').style.display = 'block'; // Show stop button
         });
 

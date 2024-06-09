@@ -46,11 +46,13 @@ def index():
 @app.route('/learn', methods=['GET', 'POST'])
 def learn():
     model_options = get_model_options()
-    if request.method == 'POST':
-        selected_model = request.form['model']
-        initialize_model_and_data(selected_model)
-        return redirect(url_for('video_feed'))
     return render_template('learn.html', model_options=model_options)
+
+@app.route('/select_model', methods=['POST'])
+def select_model():
+    selected_model = request.json['model']
+    initialize_model_and_data(selected_model)
+    return jsonify({'success': True})
 
 @app.route('/about')
 def about():
@@ -59,6 +61,23 @@ def about():
 @app.route('/create')
 def create():
     return render_template('create.html')
+
+@app.route('/submit_dataset', methods=['POST'])
+def submit_dataset():
+    craft_name = request.form['craft_name']
+    description = request.form['description']
+    movements = request.form['movements']
+    prize = request.form['prize']
+    
+    # Logic to handle the submitted data
+    # You can save it to a database or process it as needed
+    # For now, we'll just print the data to the console
+    print(f'Craft Name: {craft_name}')
+    print(f'Description: {description}')
+    print(f'Movements: {movements}')
+    print(f'Prize: {prize}')
+    
+    return "Dataset submitted successfully!"
 
 def generate_frames():
     cap = cv2.VideoCapture(0)

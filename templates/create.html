@@ -1,27 +1,132 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <title>Create</title>
-</head>
-<body>
-  <header>
-    <nav>
-      <ul>
-        <li><a href="{{ url_for('index') }}">Home</a></li>
-        <li><a href="{{ url_for('learn') }}">Learn</a></li>
-        <li><a href="{{ url_for('about') }}">About</a></li>
-        <li><a href="{{ url_for('create') }}">Create</a></li>
-      </ul>
-    </nav>
-  </header>
-  <div class="main-container">
-    <div class="container">
-      <h1>Create Your Own Dataset</h1>
-      <p>This is the Create page. Provide information on how to create a dataset here.</p>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Create Your Dataset</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: white;
+      }
+      header {
+        display: flex;
+        justify-content: center;
+        background-color: white;
+        padding: 10px 0;
+      }
+      nav ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+      }
+      nav ul li {
+        margin: 0 15px;
+      }
+      nav ul li a {
+        text-decoration: none;
+        color: #333;
+        font-weight: bold;
+      }
+      .main-container {
+        margin-top: 50px;
+        text-align: center;
+      }
+      .container {
+        background-color: white;
+      }
+      .button-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100px;
+      }
+      .button-container button {
+        padding: 10px 20px;
+        font-size: 18px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .button-container button:hover {
+        background-color: #0056b3;
+      }
+      .form-container {
+        display: none;
+        margin-top: 20px;
+        text-align: left;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .form-container input, .form-container textarea {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .form-container button {
+        width: 100%;
+        padding: 10px;
+        font-size: 18px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .form-container button:hover {
+        background-color: #218838;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <ul>
+          <li><a href="{{ url_for('index') }}">Home</a></li>
+          <li><a href="{{ url_for('learn') }}">Learn</a></li>
+          <li><a href="{{ url_for('about') }}">About</a></li>
+          <li><a href="{{ url_for('create') }}">Create</a></li>
+        </ul>
+      </nav>
+    </header>
+    <div class="main-container">
+      <div class="container">
+        <h1>Create Your Own Dataset</h1>
+        <p>Building your own dataset is essential for training a custom model. Follow the instructions to record and label your data.</p>
+        <div class="button-container">
+          <button onclick="showForm()">Start</button>
+        </div>
+        <div class="form-container" id="formContainer">
+          <form method="POST" action="/submit_dataset">
+            <label for="craftName">Craft Name</label>
+            <input type="text" id="craftName" name="craft_name" required>
+            
+            <label for="description">Description</label>
+            <textarea id="description" name="description" required></textarea>
+            
+            <label for="movements">Number of Movements</label>
+            <input type="number" id="movements" name="movements" required>
+            
+            <label for="prize">Prize</label>
+            <input type="text" id="prize" name="prize" required>
+            
+            <button type="submit">Submit</button>
+          </form>
+        </div>
+      </div>
     </div>
-  </div>
-</body>
+    <script>
+      function showForm() {
+        document.querySelector('.button-container').style.display = 'none';
+        document.getElementById('formContainer').style.display = 'block';
+      }
+    </script>
+  </body>
 </html>
