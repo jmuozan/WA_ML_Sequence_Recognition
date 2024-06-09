@@ -264,7 +264,11 @@ def process_videos_and_create_csv():
     if not os.path.exists(craft_model_dir):
         os.makedirs(craft_model_dir)
 
-    with open(os.path.join(craft_model_dir, 'dataset.csv'), mode='w', newline='') as file:
+    # Change here: Save CSV with the name of the subfolder
+    csv_filename = f"{craft_name}.csv"
+    csv_filepath = os.path.join(craft_model_dir, csv_filename)
+
+    with open(csv_filepath, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(header)
 
