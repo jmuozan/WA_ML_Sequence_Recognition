@@ -125,12 +125,12 @@
               <video src="{{ url_for('static', filename='videos/' + model + '.mp4') }}" muted></video>
               <div class="description">
                 <div style="display: flex; justify-content: space-between;">
-                  <span>MOVEMENT</span>
-                  <span>PERSON</span>
+                  <span>DESCRIPTION: {{ model_data.get(model, {}).get('description', 'N/A') }}</span>
+                  <span>MOVEMENTS: {{ model_data.get(model, {}).get('movements', 'N/A') }}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
-                  <span>LOCATION</span>
-                  <span>PRICE</span>
+                  <span>CRAFT NAME: {{ model }}</span>
+                  <span>PRICE: {{ model_data.get(model, {}).get('prize', 'N/A') }}</span>
                 </div>
               </div>
             </div>

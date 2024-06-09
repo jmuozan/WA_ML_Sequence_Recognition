@@ -1,8 +1,8 @@
+from flask import Flask, render_template, request, Response, jsonify, session
 import os
 import time
 import csv
 import logging
-from flask import Flask, render_template, request, Response, jsonify
 import threading
 import cv2
 import numpy as np
@@ -18,9 +18,10 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.regularizers import l2
 from sklearn.model_selection import train_test_split
-import subprocess  # Import subprocess to use ffmpeg for video conversion
+import subprocess
 
 app = Flask(__name__)
+app.secret_key = 'supersecretkey'  # Add a secret key for session management
 
 # Path to the models directory
 MODELS_DIR = 'models'
@@ -79,7 +80,8 @@ def index():
 @app.route('/learn', methods=['GET', 'POST'])
 def learn():
     model_options = get_model_options()
-    return render_template('learn.html', model_options=model_options)
+    model_data = session.get('model_data', {})
+    return render_template('learn.html', model_options=model_options, model_data=model_data)
 
 @app.route('/select_model', methods=['POST'])
 def select_model():
@@ -112,6 +114,16 @@ def submit_dataset():
     app.logger.info(f'Prize: {prize}')
     app.logger.info(f'Movement Length: {movement_length}')
     app.logger.info(f'Repetitions: {repetitions}')
+    
+    # Save the data in the session
+    if 'model_data' not in session:
+        session['model_data'] = {}
+    
+    session['model_data'][craft_name] = {
+        'description': description,
+        'prize': prize,
+        'movements': movements
+    }
     
     return jsonify({'success': True, 'craft_name': craft_name, 'movements': movements, 'movement_length': movement_length, 'repetitions': repetitions})
 
