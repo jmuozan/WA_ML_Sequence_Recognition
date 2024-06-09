@@ -18,12 +18,14 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.regularizers import l2
 from sklearn.model_selection import train_test_split
+import subprocess  # Import subprocess to use ffmpeg for video conversion
 
 app = Flask(__name__)
 
 # Path to the models directory
 MODELS_DIR = 'models'
 VID_DIR = 'created'
+STATIC_VID_DIR = 'static/videos'
 
 # Global variables to store the selected model and data
 model = None
@@ -375,6 +377,24 @@ def equalize_array_counts(base_folder):
                 np.save(new_file_path, zero_array)
                 app.logger.info(f"Created {new_file_path} with zeros")
 
+def convert_and_copy_video(craft_name):
+    source_video_path = os.path.join(VID_DIR, craft_name, 'Movement_1', f'{craft_name}_movement_1_rep_1.avi')
+    target_video_path = os.path.join(STATIC_VID_DIR, f'{craft_name}.mp4')
+
+    if not os.path.exists(STATIC_VID_DIR):
+        os.makedirs(STATIC_VID_DIR)
+    
+    if not os.path.exists(source_video_path):
+        app.logger.error(f"Source video not found: {source_video_path}")
+        return
+
+    try:
+        # Convert the video from .avi to .mp4 using ffmpeg
+        subprocess.run(['ffmpeg', '-i', source_video_path, target_video_path], check=True)
+        app.logger.info(f"Video converted and saved to {target_video_path}")
+    except subprocess.CalledProcessError as e:
+        app.logger.error(f"Error converting video: {str(e)}")
+
 @app.route('/start_training', methods=['POST'])
 def start_training():
     try:
@@ -393,6 +413,9 @@ def start_training():
 
         # Ensure all sequences have the same number of arrays
         equalize_array_counts(base_folder)
+
+        # Convert and copy the first video of the first movement
+        convert_and_copy_video(craft_name)
 
         data = pd.read_csv(csv_file)
         labels = data.iloc[:, 0]
