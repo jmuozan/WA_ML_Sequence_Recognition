@@ -269,7 +269,19 @@
       }
 
       function startTraining() {
-        alert('Training started!'); // Replace this with actual training logic
+        fetch('/start_training', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }).then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Training CSV created successfully!');
+          } else {
+            alert('Failed to create training CSV');
+          }
+        });
       }
     </script>
   </body>

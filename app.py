@@ -1,5 +1,6 @@
 import os
 import time
+import csv
 from flask import Flask, render_template, request, Response, jsonify
 import threading
 import cv2
@@ -30,7 +31,6 @@ current_repetition = 0
 current_status = ""
 
 def get_model_options():
-    # Scan the models directory for available subfolders
     subfolders = [f.name for f in os.scandir(MODELS_DIR) if f.is_dir()]
     return subfolders
 
@@ -90,7 +90,6 @@ def submit_dataset():
     movement_length = int(request.form['movement_length'])
     repetitions = int(request.form['repetitions'])
     
-    # Logic to handle the submitted data
     print(f'Craft Name: {craft_name}')
     print(f'Description: {description}')
     print(f'Movements: {movements}')
@@ -124,7 +123,7 @@ def generate_frames():
 
                 if len(sequence) == 30 and model is not None:
                     res = predict_action(model, sequence)
-                    if res is not None:  # Check if the result is not None
+                    if res is not None:
                         action = actions[np.argmax(res)]
                         incorrect_movement = action.endswith("_W")
                         color = (0, 0, 255) if incorrect_movement else (0, 255, 0)
@@ -235,6 +234,66 @@ def check_status():
     if all_movements_done_event.is_set():
         return jsonify({'all_movements_done': True})
     return jsonify({'all_movements_done': False, 'current_movement': current_movement, 'current_repetition': current_repetition, 'current_status': current_status})
+
+def process_videos_and_create_csv():
+    mp_holistic = mp.solutions.holistic
+    holistic = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+    header = ['label', 'sequence']
+    for i in range(33):  # pose landmarks
+        header += [f'pose_{i}_x', f'pose_{i}_y', f'pose_{i}_z']
+    for i in range(21):  # left hand landmarks
+        header += [f'left_hand_{i}_x', f'left_hand_{i}_y', f'left_hand_{i}_z']
+    for i in range(21):  # right hand landmarks
+        header += [f'right_hand_{i}_x', f'right_hand_{i}_y', f'right_hand_{i}_z']
+
+    craft_name = ''
+    video_dir = ''
+    
+    for root, dirs, files in os.walk(VID_DIR):
+        for dir in dirs:
+            craft_name = dir
+            video_dir = os.path.join(VID_DIR, craft_name)
+            break
+        break
+    
+    if not craft_name:
+        return
+    
+    craft_model_dir = os.path.join(MODELS_DIR, craft_name)
+    if not os.path.exists(craft_model_dir):
+        os.makedirs(craft_model_dir)
+
+    with open(os.path.join(craft_model_dir, 'dataset.csv'), mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(header)
+
+        for root, dirs, files in os.walk(video_dir):
+            for dir in dirs:
+                label = dir
+                dir_path = os.path.join(root, dir)
+                sequence = 0
+                for video_file in os.listdir(dir_path):
+                    if video_file.endswith('.avi'):
+                        video_path = os.path.join(dir_path, video_file)
+                        cap = cv2.VideoCapture(video_path)
+                        while cap.isOpened():
+                            ret, frame = cap.read()
+                            if not ret:
+                                break
+                            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                            results = holistic.process(frame_rgb)
+                            keypoints = extract_keypoints(results)
+                            keypoints = [np.float32(0) if np.isnan(x) else np.float32(x) for x in keypoints]
+                            row = [label, sequence] + keypoints
+                            writer.writerow(row)
+                        cap.release()
+                        sequence += 1
+
+@app.route('/start_training', methods=['POST'])
+def start_training():
+    process_videos_and_create_csv()
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
     app.run(debug=True)
