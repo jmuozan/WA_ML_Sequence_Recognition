@@ -24,6 +24,10 @@ label_map = {}
 reverse_label_map = {}
 stop_event = threading.Event()
 recording_event = threading.Event()
+all_movements_done_event = threading.Event()
+current_movement = 0
+current_repetition = 0
+current_status = ""
 
 def get_model_options():
     # Scan the models directory for available subfolders
@@ -81,14 +85,12 @@ def create():
 def submit_dataset():
     craft_name = request.form['craft_name']
     description = request.form['description']
-    movements = request.form['movements']
+    movements = int(request.form['movements'])
     prize = request.form['prize']
-    movement_length = request.form['movement_length']
-    repetitions = request.form['repetitions']
+    movement_length = int(request.form['movement_length'])
+    repetitions = int(request.form['repetitions'])
     
     # Logic to handle the submitted data
-    # You can save it to a database or process it as needed
-    # For now, we'll just print the data to the console
     print(f'Craft Name: {craft_name}')
     print(f'Description: {description}')
     print(f'Movements: {movements}')
@@ -96,7 +98,7 @@ def submit_dataset():
     print(f'Movement Length: {movement_length}')
     print(f'Repetitions: {repetitions}')
     
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'craft_name': craft_name, 'movements': movements, 'movement_length': movement_length, 'repetitions': repetitions})
 
 def generate_frames():
     cap = cv2.VideoCapture(0)
@@ -140,7 +142,8 @@ def generate_frames():
 
     cap.release()
 
-def record_video(length, craft_name, repetitions):
+def record_video(length, craft_name, repetitions, movements):
+    global current_movement, current_repetition, current_status
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Error: Unable to open video capture")
@@ -158,37 +161,51 @@ def record_video(length, craft_name, repetitions):
     mp_holistic = mp.solutions.holistic
     holistic = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
-    for i in range(repetitions):
-        video_path = os.path.join(video_dir, f'{craft_name}_rep_{i + 1}.avi')
-        out = cv2.VideoWriter(video_path, fourcc, fps, (width, height))
-        if not out.isOpened():
-            print("Error: Could not open video writer")
-            return
+    for movement in range(movements):
+        movement_dir = os.path.join(video_dir, f'Movement_{movement + 1}')
+        if not os.path.exists(movement_dir):
+            os.makedirs(movement_dir)
+        current_movement = movement + 1
 
-        start_time = time.time()
-        while time.time() - start_time < length:
-            success, frame = cap.read()
-            if not success:
-                print("Error: Unable to read frame from video capture")
-                break
-            frame = cv2.flip(frame, 1)
+        for i in range(repetitions):
+            current_repetition = i + 1
+            video_path = os.path.join(movement_dir, f'{craft_name}_movement_{movement + 1}_rep_{i + 1}.avi')
+            out = cv2.VideoWriter(video_path, fourcc, fps, (width, height))
+            if not out.isOpened():
+                print("Error: Could not open video writer")
+                return
 
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_rgb.flags.writeable = False
-            results = holistic.process(frame_rgb)
-            frame_rgb.flags.writeable = True
-            frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+            start_time = time.time()
+            current_status = f'Recording Movement {current_movement}, Repetition {current_repetition}'
+            while time.time() - start_time < length:
+                success, frame = cap.read()
+                if not success:
+                    print("Error: Unable to read frame from video capture")
+                    break
+                frame = cv2.flip(frame, 1)
 
-            draw_styled_landmarks(frame, results, False)
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame_rgb.flags.writeable = False
+                results = holistic.process(frame_rgb)
+                frame_rgb.flags.writeable = True
+                frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
 
-            # Write every frame
-            out.write(frame)
+                draw_styled_landmarks(frame, results, False)
 
-        out.release()
-        print(f"Video saved: {video_path}")
+                # Write every frame
+                out.write(frame)
+
+            out.release()
+            print(f"Video saved: {video_path}")
+
+        if movement < movements - 1:
+            current_status = f'Movement {movement + 1} completed. Preparing for movement {movement + 2}...'
+            print(current_status)
+            time.sleep(5)
 
     cap.release()
     cv2.destroyAllWindows()
+    all_movements_done_event.set()
 
 @app.route('/video_feed')
 def video_feed():
@@ -200,7 +217,9 @@ def start_recording():
     length = int(data['length'])
     craft_name = data['craft_name']
     repetitions = int(data['repetitions'])
-    recording_thread = threading.Thread(target=record_video, args=(length, craft_name, repetitions))
+    movements = int(data['movements'])
+    all_movements_done_event.clear()
+    recording_thread = threading.Thread(target=record_video, args=(length, craft_name, repetitions, movements))
     recording_thread.start()
     return jsonify({'success': True})
 
@@ -209,6 +228,13 @@ def stop_prediction():
     global stop_event
     stop_event.set()
     return jsonify({'success': True})
+
+@app.route('/check_status', methods=['POST'])
+def check_status():
+    global current_movement, current_repetition, current_status
+    if all_movements_done_event.is_set():
+        return jsonify({'all_movements_done': True})
+    return jsonify({'all_movements_done': False, 'current_movement': current_movement, 'current_repetition': current_repetition, 'current_status': current_status})
 
 if __name__ == '__main__':
     app.run(debug=True)

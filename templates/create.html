@@ -105,11 +105,30 @@
       #startRecordingButton:hover {
         background-color: #218838;
       }
-      #countdown {
+      #trainingButton {
+        display: none;
+        padding: 10px 20px;
+        font-size: 18px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 20px;
+      }
+      #trainingButton:hover {
+        background-color: #218838;
+      }
+      #countdown, #message {
         font-size: 24px;
-        color: red;
         font-weight: bold;
         margin-top: 20px;
+      }
+      #countdown {
+        color: red;
+      }
+      #message {
+        color: green;
       }
     </style>
   </head>
@@ -154,7 +173,9 @@
         <div id="videoFeedContainer">
           <img id="camera" />
           <div id="countdown"></div>
+          <div id="message"></div>
           <button id="startRecordingButton" onclick="startRecording()">Start Recording Movement 1</button>
+          <button id="trainingButton" onclick="startTraining()">Training</button>
         </div>
       </div>
     </div>
@@ -162,6 +183,8 @@
       let movementLength = 0;
       let craftName = '';
       let repetitions = 0;
+      let movements = 0;
+      let currentMovement = 1;
 
       document.getElementById('datasetForm').addEventListener('submit', function(event) {
         event.preventDefault();
@@ -169,6 +192,7 @@
         movementLength = formData.get('movement_length');
         craftName = formData.get('craft_name');
         repetitions = formData.get('repetitions');
+        movements = formData.get('movements');
         fetch('/submit_dataset', {
           method: 'POST',
           body: formData
@@ -192,11 +216,19 @@
         camera.style.display = 'block';
       }
 
+      function stopCamera() {
+        const camera = document.getElementById('camera');
+        camera.style.display = 'none';
+        camera.src = "";
+      }
+
       function startRecording() {
         document.getElementById('startRecordingButton').style.display = 'none';
         let countdown = 5;
         const countdownElement = document.getElementById('countdown');
+        const messageElement = document.getElementById('message');
         countdownElement.innerText = `Recording starts in ${countdown}...`;
+        messageElement.innerText = '';
         
         const countdownInterval = setInterval(() => {
           countdown -= 1;
@@ -209,21 +241,35 @@
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ length: movementLength, craft_name: craftName, repetitions: repetitions })
+              body: JSON.stringify({ length: movementLength, craft_name: craftName, repetitions: repetitions, movements: movements })
             }).then(response => response.json())
             .then(data => {
               if (data.success) {
-                setTimeout(() => {
-                  alert('Recording completed successfully');
-                  countdownElement.innerText = '';
-                  document.getElementById('startRecordingButton').style.display = 'block';
-                }, movementLength * 1000 * repetitions);
+                const checkInterval = setInterval(() => {
+                  fetch('/check_status', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(status => {
+                      if (status.all_movements_done) {
+                        clearInterval(checkInterval);
+                        countdownElement.innerText = '';
+                        stopCamera();
+                        document.getElementById('trainingButton').style.display = 'block';
+                        alert('All movements completed successfully');
+                      } else {
+                        countdownElement.innerText = status.current_status;
+                      }
+                    });
+                }, 1000);
               } else {
                 alert('Failed to record video');
               }
             });
           }
         }, 1000);
+      }
+
+      function startTraining() {
+        alert('Training started!'); // Replace this with actual training logic
       }
     </script>
   </body>
