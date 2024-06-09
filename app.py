@@ -16,6 +16,7 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional
 from tensorflow.keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.regularizers import l2
 from sklearn.model_selection import train_test_split
 
 app = Flask(__name__)
@@ -350,6 +351,30 @@ def save_data_as_arrays(csv_file, base_folder):
             np.save(file_path, data_array)
             file_counter += 1
 
+def equalize_array_counts(base_folder):
+    max_files = 0
+    subfolder_paths = []
+
+    for label in os.listdir(base_folder):
+        label_path = os.path.join(base_folder, label)
+        if os.path.isdir(label_path):
+            for sequence in os.listdir(label_path):
+                sequence_path = os.path.join(label_path, sequence)
+                if os.path.isdir(sequence_path):
+                    subfolder_paths.append(sequence_path)
+                    num_files = len([f for f in os.listdir(sequence_path) if f.endswith('.npy')])
+                    if num_files > max_files:
+                        max_files = num_files
+
+    for folder in subfolder_paths:
+        current_count = len([f for f in os.listdir(folder) if f.endswith('.npy')])
+        if current_count < max_files:
+            for i in range(current_count, max_files):
+                new_file_path = os.path.join(folder, f"{i}.npy")
+                zero_array = np.zeros(225, dtype=np.float32)  
+                np.save(new_file_path, zero_array)
+                app.logger.info(f"Created {new_file_path} with zeros")
+
 @app.route('/start_training', methods=['POST'])
 def start_training():
     try:
@@ -365,6 +390,9 @@ def start_training():
         base_folder = os.path.join('DataBase')
         create_subfolders_from_labels_and_sequences(csv_file, base_folder)
         save_data_as_arrays(csv_file, base_folder)
+
+        # Ensure all sequences have the same number of arrays
+        equalize_array_counts(base_folder)
 
         data = pd.read_csv(csv_file)
         labels = data.iloc[:, 0]
@@ -396,7 +424,7 @@ def start_training():
         actions_array = np.array(actions)
 
         model = Sequential()
-        model.add(Bidirectional(LSTM(64, return_sequences=True, activation='tanh'), input_shape=(68, 225)))
+        model.add(Bidirectional(LSTM(64, return_sequences=True, activation='tanh'), input_shape=(30, 225)))
         model.add(Dropout(0.2))
         model.add(Bidirectional(LSTM(128, return_sequences=True, activation='tanh', kernel_regularizer=l2(0.01))))
         model.add(Dropout(0.2))
