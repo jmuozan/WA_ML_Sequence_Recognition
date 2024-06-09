@@ -1,5 +1,6 @@
 import os
-from flask import Flask, render_template, request, Response, redirect, url_for, jsonify
+import time
+from flask import Flask, render_template, request, Response, jsonify
 import threading
 import cv2
 import numpy as np
@@ -13,6 +14,7 @@ app = Flask(__name__)
 
 # Path to the models directory
 MODELS_DIR = 'models'
+VID_DIR = 'created'
 
 # Global variables to store the selected model and data
 model = None
@@ -21,6 +23,7 @@ actions = []
 label_map = {}
 reverse_label_map = {}
 stop_event = threading.Event()
+recording_event = threading.Event()
 
 def get_model_options():
     # Scan the models directory for available subfolders
@@ -32,12 +35,22 @@ def initialize_model_and_data(selected_model):
     model_path = os.path.join(MODELS_DIR, selected_model, f'{selected_model}.h5')
     csv_path = os.path.join(MODELS_DIR, selected_model, f'{selected_model}.csv')
     
+    if not os.path.exists(model_path) or not os.path.exists(csv_path):
+        model = None
+        data = None
+        actions = []
+        label_map = {}
+        reverse_label_map = {}
+        print(f"Error: Model or CSV file not found for {selected_model}")
+        return False
+
     data = pd.read_csv(csv_path)
     labels = data.iloc[:, 0]
     actions = list(set(labels))
     label_map = {label: num for num, label in enumerate(actions)}
     model = load_action_model(model_path)
     reverse_label_map = {value: key for key, value in label_map.items()}
+    return True
 
 @app.route('/')
 def index():
@@ -51,8 +64,10 @@ def learn():
 @app.route('/select_model', methods=['POST'])
 def select_model():
     selected_model = request.json['model']
-    initialize_model_and_data(selected_model)
-    return jsonify({'success': True})
+    if initialize_model_and_data(selected_model):
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Model or CSV file not found'})
 
 @app.route('/about')
 def about():
@@ -68,6 +83,8 @@ def submit_dataset():
     description = request.form['description']
     movements = request.form['movements']
     prize = request.form['prize']
+    movement_length = request.form['movement_length']
+    repetitions = request.form['repetitions']
     
     # Logic to handle the submitted data
     # You can save it to a database or process it as needed
@@ -76,8 +93,10 @@ def submit_dataset():
     print(f'Description: {description}')
     print(f'Movements: {movements}')
     print(f'Prize: {prize}')
+    print(f'Movement Length: {movement_length}')
+    print(f'Repetitions: {repetitions}')
     
-    return "Dataset submitted successfully!"
+    return jsonify({'success': True})
 
 def generate_frames():
     cap = cv2.VideoCapture(0)
@@ -94,19 +113,20 @@ def generate_frames():
             frame = cv2.flip(frame, 1)
 
             image, results = mediapipe_detection(frame, holistic)
+            draw_styled_landmarks(image, results, False)
 
             if results.pose_landmarks or results.left_hand_landmarks or results.right_hand_landmarks:
                 keypoints = extract_keypoints(results)
                 sequence.append(keypoints)
                 sequence = sequence[-30:]
 
-                if len(sequence) == 30:
+                if len(sequence) == 30 and model is not None:
                     res = predict_action(model, sequence)
-                    action = actions[np.argmax(res)]
-                    incorrect_movement = action.endswith("_W")
-                    draw_styled_landmarks(image, results, incorrect_movement)
-                    color = (0, 0, 255) if incorrect_movement else (0, 255, 0)
-                    cv2.putText(image, f'Action: {action}', (15, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
+                    if res is not None:  # Check if the result is not None
+                        action = actions[np.argmax(res)]
+                        incorrect_movement = action.endswith("_W")
+                        color = (0, 0, 255) if incorrect_movement else (0, 255, 0)
+                        cv2.putText(image, f'Action: {action}', (15, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
 
             _, buffer = cv2.imencode('.jpg', image)
             frame = buffer.tobytes()
@@ -120,11 +140,69 @@ def generate_frames():
 
     cap.release()
 
+def record_video(length, craft_name, repetitions):
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Unable to open video capture")
+        return
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
+    print(f"Video Resolution: {width}x{height} at {fps} FPS")
+
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    video_dir = os.path.join(VID_DIR, craft_name)
+    if not os.path.exists(video_dir):
+        os.makedirs(video_dir)
+
+    mp_holistic = mp.solutions.holistic
+    holistic = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+    for i in range(repetitions):
+        video_path = os.path.join(video_dir, f'{craft_name}_rep_{i + 1}.avi')
+        out = cv2.VideoWriter(video_path, fourcc, fps, (width, height))
+        if not out.isOpened():
+            print("Error: Could not open video writer")
+            return
+
+        start_time = time.time()
+        while time.time() - start_time < length:
+            success, frame = cap.read()
+            if not success:
+                print("Error: Unable to read frame from video capture")
+                break
+            frame = cv2.flip(frame, 1)
+
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_rgb.flags.writeable = False
+            results = holistic.process(frame_rgb)
+            frame_rgb.flags.writeable = True
+            frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+
+            draw_styled_landmarks(frame, results, False)
+
+            # Write every frame
+            out.write(frame)
+
+        out.release()
+        print(f"Video saved: {video_path}")
+
+    cap.release()
+    cv2.destroyAllWindows()
+
 @app.route('/video_feed')
 def video_feed():
-    if model is None or data is None:
-        return redirect(url_for('learn'))
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/start_recording', methods=['POST'])
+def start_recording():
+    data = request.get_json()
+    length = int(data['length'])
+    craft_name = data['craft_name']
+    repetitions = int(data['repetitions'])
+    recording_thread = threading.Thread(target=record_video, args=(length, craft_name, repetitions))
+    recording_thread.start()
+    return jsonify({'success': True})
 
 @app.route('/stop_prediction', methods=['POST'])
 def stop_prediction():

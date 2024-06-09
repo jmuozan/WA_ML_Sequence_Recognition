@@ -56,7 +56,6 @@
         background-color: #0056b3;
       }
       .form-container {
-        display: none;
         margin-top: 20px;
         text-align: left;
         max-width: 500px;
@@ -83,6 +82,35 @@
       .form-container button:hover {
         background-color: #218838;
       }
+      #videoFeedContainer {
+        display: none;
+        margin-top: 20px;
+        text-align: center;
+      }
+      #camera {
+        width: 100%;
+        height: auto;
+      }
+      #startRecordingButton {
+        display: none;
+        padding: 10px 20px;
+        font-size: 18px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 20px;
+      }
+      #startRecordingButton:hover {
+        background-color: #218838;
+      }
+      #countdown {
+        font-size: 24px;
+        color: red;
+        font-weight: bold;
+        margin-top: 20px;
+      }
     </style>
   </head>
   <body>
@@ -100,11 +128,8 @@
       <div class="container">
         <h1>Create Your Own Dataset</h1>
         <p>Building your own dataset is essential for training a custom model. Follow the instructions to record and label your data.</p>
-        <div class="button-container">
-          <button onclick="showForm()">Start</button>
-        </div>
         <div class="form-container" id="formContainer">
-          <form method="POST" action="/submit_dataset">
+          <form id="datasetForm">
             <label for="craftName">Craft Name</label>
             <input type="text" id="craftName" name="craft_name" required>
             
@@ -117,15 +142,88 @@
             <label for="prize">Prize</label>
             <input type="text" id="prize" name="prize" required>
             
+            <label for="movementLength">Length of Movement (seconds)</label>
+            <input type="number" id="movementLength" name="movement_length" required>
+
+            <label for="repetitions">Repetitions</label>
+            <input type="number" id="repetitions" name="repetitions" required>
+            
             <button type="submit">Submit</button>
           </form>
+        </div>
+        <div id="videoFeedContainer">
+          <img id="camera" />
+          <div id="countdown"></div>
+          <button id="startRecordingButton" onclick="startRecording()">Start Recording Movement 1</button>
         </div>
       </div>
     </div>
     <script>
-      function showForm() {
-        document.querySelector('.button-container').style.display = 'none';
-        document.getElementById('formContainer').style.display = 'block';
+      let movementLength = 0;
+      let craftName = '';
+      let repetitions = 0;
+
+      document.getElementById('datasetForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        movementLength = formData.get('movement_length');
+        craftName = formData.get('craft_name');
+        repetitions = formData.get('repetitions');
+        fetch('/submit_dataset', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            document.getElementById('formContainer').style.display = 'none';
+            document.getElementById('videoFeedContainer').style.display = 'block';
+            startCamera();
+            document.getElementById('startRecordingButton').style.display = 'block';
+          } else {
+            alert('Failed to submit dataset');
+          }
+        });
+      });
+
+      function startCamera() {
+        const camera = document.getElementById('camera');
+        camera.src = "/video_feed";
+        camera.style.display = 'block';
+      }
+
+      function startRecording() {
+        document.getElementById('startRecordingButton').style.display = 'none';
+        let countdown = 5;
+        const countdownElement = document.getElementById('countdown');
+        countdownElement.innerText = `Recording starts in ${countdown}...`;
+        
+        const countdownInterval = setInterval(() => {
+          countdown -= 1;
+          countdownElement.innerText = `Recording starts in ${countdown}...`;
+          if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            countdownElement.innerText = 'Recording...';
+            fetch('/start_recording', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ length: movementLength, craft_name: craftName, repetitions: repetitions })
+            }).then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                setTimeout(() => {
+                  alert('Recording completed successfully');
+                  countdownElement.innerText = '';
+                  document.getElementById('startRecordingButton').style.display = 'block';
+                }, movementLength * 1000 * repetitions);
+              } else {
+                alert('Failed to record video');
+              }
+            });
+          }
+        }, 1000);
       }
     </script>
   </body>
