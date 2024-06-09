@@ -1,6 +1,7 @@
 import os
 import time
 import csv
+import logging
 from flask import Flask, render_template, request, Response, jsonify
 import threading
 import cv2
@@ -10,6 +11,12 @@ import mediapipe as mp
 from modules.detection import mediapipe_detection, draw_styled_landmarks
 from modules.keypoints import extract_keypoints
 from modules.model_handler import load_action_model, predict_action
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional
+from tensorflow.keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import to_categorical
+from sklearn.model_selection import train_test_split
 
 app = Flask(__name__)
 
@@ -30,6 +37,12 @@ current_movement = 0
 current_repetition = 0
 current_status = ""
 
+# Set up logging
+file_handler = logging.FileHandler('app.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+app.logger.addHandler(file_handler)
+
 def get_model_options():
     subfolders = [f.name for f in os.scandir(MODELS_DIR) if f.is_dir()]
     return subfolders
@@ -45,7 +58,7 @@ def initialize_model_and_data(selected_model):
         actions = []
         label_map = {}
         reverse_label_map = {}
-        print(f"Error: Model or CSV file not found for {selected_model}")
+        app.logger.error(f"Error: Model or CSV file not found for {selected_model}")
         return False
 
     data = pd.read_csv(csv_path)
@@ -90,12 +103,12 @@ def submit_dataset():
     movement_length = int(request.form['movement_length'])
     repetitions = int(request.form['repetitions'])
     
-    print(f'Craft Name: {craft_name}')
-    print(f'Description: {description}')
-    print(f'Movements: {movements}')
-    print(f'Prize: {prize}')
-    print(f'Movement Length: {movement_length}')
-    print(f'Repetitions: {repetitions}')
+    app.logger.info(f'Craft Name: {craft_name}')
+    app.logger.info(f'Description: {description}')
+    app.logger.info(f'Movements: {movements}')
+    app.logger.info(f'Prize: {prize}')
+    app.logger.info(f'Movement Length: {movement_length}')
+    app.logger.info(f'Repetitions: {repetitions}')
     
     return jsonify({'success': True, 'craft_name': craft_name, 'movements': movements, 'movement_length': movement_length, 'repetitions': repetitions})
 
@@ -108,7 +121,7 @@ def generate_frames():
         while not stop_event.is_set():
             ret, frame = cap.read()
             if not ret:
-                print("Error: Frame could not be read.")
+                app.logger.error("Error: Frame could not be read.")
                 break
 
             frame = cv2.flip(frame, 1)
@@ -145,12 +158,12 @@ def record_video(length, craft_name, repetitions, movements):
     global current_movement, current_repetition, current_status
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        print("Error: Unable to open video capture")
+        app.logger.error("Error: Unable to open video capture")
         return
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
-    print(f"Video Resolution: {width}x{height} at {fps} FPS")
+    app.logger.info(f"Video Resolution: {width}x{height} at {fps} FPS")
 
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     video_dir = os.path.join(VID_DIR, craft_name)
@@ -171,7 +184,7 @@ def record_video(length, craft_name, repetitions, movements):
             video_path = os.path.join(movement_dir, f'{craft_name}_movement_{movement + 1}_rep_{i + 1}.avi')
             out = cv2.VideoWriter(video_path, fourcc, fps, (width, height))
             if not out.isOpened():
-                print("Error: Could not open video writer")
+                app.logger.error("Error: Could not open video writer")
                 return
 
             start_time = time.time()
@@ -179,7 +192,7 @@ def record_video(length, craft_name, repetitions, movements):
             while time.time() - start_time < length:
                 success, frame = cap.read()
                 if not success:
-                    print("Error: Unable to read frame from video capture")
+                    app.logger.error("Error: Unable to read frame from video capture")
                     break
                 frame = cv2.flip(frame, 1)
 
@@ -195,11 +208,11 @@ def record_video(length, craft_name, repetitions, movements):
                 out.write(frame)
 
             out.release()
-            print(f"Video saved: {video_path}")
+            app.logger.info(f"Video saved: {video_path}")
 
         if movement < movements - 1:
             current_status = f'Movement {movement + 1} completed. Preparing for movement {movement + 2}...'
-            print(current_status)
+            app.logger.info(current_status)
             time.sleep(5)
 
     cap.release()
@@ -294,10 +307,120 @@ def process_videos_and_create_csv():
                         cap.release()
                         sequence += 1
 
+def create_subfolders_from_labels_and_sequences(csv_file, base_folder):
+    data = pd.read_csv(csv_file)
+    if not os.path.exists(base_folder): 
+        os.makedirs(base_folder)
+    
+    unique_labels = data['label'].unique()     
+    
+    for label in unique_labels:    
+        label_folder_path = os.path.join(base_folder, label)
+        if not os.path.exists(label_folder_path):
+            os.makedirs(label_folder_path)
+        
+        label_data = data[data['label'] == label]       
+        
+        unique_sequences = label_data['sequence'].unique()
+        
+        for sequence in unique_sequences:
+            sequence_folder_path = os.path.join(label_folder_path, str(sequence))
+            if not os.path.exists(sequence_folder_path):
+                os.makedirs(sequence_folder_path)
+            else:
+                app.logger.info(f"Subfolder for sequence {sequence} in label {label} already exists.")
+
+def save_data_as_arrays(csv_file, base_folder):
+    data = pd.read_csv(csv_file)
+    
+    for (label, sequence), group in data.groupby(['label', 'sequence']):
+        folder_path = os.path.join(base_folder, label, str(sequence))
+        
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        
+        file_counter = 0
+        
+        for index, row in group.iterrows():
+            data_array = row.drop(['label', 'sequence']).to_numpy(dtype=np.float32)
+            
+            file_name = f"{file_counter}.npy"
+            file_path = os.path.join(folder_path, file_name)
+            
+            np.save(file_path, data_array)
+            file_counter += 1
+
 @app.route('/start_training', methods=['POST'])
 def start_training():
-    process_videos_and_create_csv()
-    return jsonify({'success': True})
+    try:
+        data = request.get_json()
+        craft_name = data.get('craft_name')
+        if not craft_name:
+            app.logger.error('No craft_name provided in the request')
+            return jsonify({'success': False, 'error': 'No craft_name provided'}), 400
+
+        process_videos_and_create_csv()
+
+        csv_file = os.path.join(MODELS_DIR, craft_name, f"{craft_name}.csv")
+        base_folder = os.path.join('DataBase')
+        create_subfolders_from_labels_and_sequences(csv_file, base_folder)
+        save_data_as_arrays(csv_file, base_folder)
+
+        data = pd.read_csv(csv_file)
+        labels = data.iloc[:, 0]
+        actions = list(set(labels))
+        
+        label_map = {label:num for num, label in enumerate(actions)}
+
+        sequences, labels = [], []
+        no_sequences = len(data['sequence'].unique())
+        sequence_length = 30  # Assuming sequence length is 30, adjust if necessary
+        for action in actions:
+            for sequence in range(no_sequences):
+                window = []
+                for frame_num in range(sequence_length):
+                    file_path = os.path.join(base_folder, action, str(sequence), f"{frame_num}.npy")
+                    res = np.load(file_path, allow_pickle=True)  
+                    window.append(res)
+                sequences.append(window)  
+                labels.append(label_map[action])
+
+        X = np.array(sequences)
+        y = to_categorical(labels).astype(int)
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05)
+
+        log_dir = os.path.join('Logs')
+        tb_callback = TensorBoard(log_dir=log_dir)
+
+        actions_array = np.array(actions)
+
+        model = Sequential()
+        model.add(Bidirectional(LSTM(64, return_sequences=True, activation='tanh'), input_shape=(68, 225)))
+        model.add(Dropout(0.2))
+        model.add(Bidirectional(LSTM(128, return_sequences=True, activation='tanh', kernel_regularizer=l2(0.01))))
+        model.add(Dropout(0.2))
+        model.add(Bidirectional(LSTM(64, activation='tanh')))
+        model.add(Dense(64, activation='relu'))
+        model.add(Dense(32, activation='relu'))
+        model.add(Dense(actions_array.shape[0], activation='softmax'))
+
+        optimizer = Adam(learning_rate=0.001)
+        model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+
+        early_stopping = EarlyStopping(monitor='val_accuracy', patience=20, restore_best_weights=True)
+        checkpoint = ModelCheckpoint(os.path.join(MODELS_DIR, craft_name, 'best_model.keras'), save_best_only=True, monitor='val_accuracy', mode='max')
+        reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.0001)
+
+        model.fit(X_train, y_train, validation_split=0.2, epochs=2000, batch_size=32,
+                  callbacks=[tb_callback, early_stopping, checkpoint, reduce_lr])
+
+        model.save(os.path.join(MODELS_DIR, craft_name, f"{craft_name}.h5"))
+
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f'Error during training: {str(e)}')
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

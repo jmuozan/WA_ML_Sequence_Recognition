@@ -149,7 +149,7 @@
         <p>Building your own dataset is essential for training a custom model. Follow the instructions to record and label your data.</p>
         <div class="form-container" id="formContainer">
           <form id="datasetForm">
-            <label for="craftName">Craft's Name</label>
+            <label for="craftName">Craft Name</label>
             <input type="text" id="craftName" name="craft_name" required>
             
             <label for="description">Description</label>
@@ -269,18 +269,23 @@
       }
 
       function startTraining() {
+        const craftName = document.getElementById('craftName').value;
         fetch('/start_training', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          }
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ craft_name: craftName })
         }).then(response => response.json())
         .then(data => {
-          if (data.success) {
-            alert('Training CSV created successfully!');
-          } else {
-            alert('Failed to create training CSV');
-          }
+            if (data.success) {
+                alert('Training started successfully!');
+            } else {
+                alert('Failed to start training');
+            }
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('Failed to start training');
         });
       }
     </script>
