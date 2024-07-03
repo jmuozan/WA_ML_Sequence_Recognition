@@ -21,14 +21,12 @@ from sklearn.model_selection import train_test_split
 import subprocess
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'  # Add a secret key for session management
+app.secret_key = 'supersecretkey'  
 
-# Path to the models directory
 MODELS_DIR = 'models'
 VID_DIR = 'created'
 STATIC_VID_DIR = 'static/videos'
 
-# Global variables to store the selected model and data
 model = None
 data = None
 actions = []
@@ -115,7 +113,6 @@ def submit_dataset():
     app.logger.info(f'Movement Length: {movement_length}')
     app.logger.info(f'Repetitions: {repetitions}')
     
-    # Save the data in the session
     if 'model_data' not in session:
         session['model_data'] = {}
     
@@ -219,7 +216,6 @@ def record_video(length, craft_name, repetitions, movements):
 
                 draw_styled_landmarks(frame, results, False)
 
-                # Write every frame
                 out.write(frame)
 
             out.release()
@@ -292,7 +288,6 @@ def process_videos_and_create_csv():
     if not os.path.exists(craft_model_dir):
         os.makedirs(craft_model_dir)
 
-    # Change here: Save CSV with the name of the subfolder
     csv_filename = f"{craft_name}.csv"
     csv_filepath = os.path.join(craft_model_dir, csv_filename)
 
@@ -401,7 +396,7 @@ def convert_and_copy_video(craft_name):
         return
 
     try:
-        # Convert the video from .avi to .mp4 using ffmpeg
+        # Convert the video from .avi to .mp4 
         subprocess.run(['ffmpeg', '-i', source_video_path, target_video_path], check=True)
         app.logger.info(f"Video converted and saved to {target_video_path}")
     except subprocess.CalledProcessError as e:
@@ -423,7 +418,7 @@ def start_training():
         create_subfolders_from_labels_and_sequences(csv_file, base_folder)
         save_data_as_arrays(csv_file, base_folder)
 
-        # Ensure all sequences have the same number of arrays
+        # All sequences have the same number of arrays
         equalize_array_counts(base_folder)
 
         # Convert and copy the first video of the first movement
